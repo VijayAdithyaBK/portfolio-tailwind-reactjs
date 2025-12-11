@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, BookOpen, X, Info } from 'lucide-react';
 import Button from './Button';
 import Card from './Card';
 
 const GameWrapper = ({ title, description, instructions, children }) => {
     const [showTutorial, setShowTutorial] = useState(true);
+    const navigate = useNavigate();
 
     return (
         <div className="flex flex-col w-full h-full bg-slate-50 overflow-hidden">
@@ -12,7 +14,7 @@ const GameWrapper = ({ title, description, instructions, children }) => {
             <div className="flex-none flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3 bg-white border-b border-slate-200 shadow-sm z-10">
                 <div className="flex items-center gap-2 sm:gap-4">
                     <button
-                        onClick={() => window.location.href = '/'}
+                        onClick={() => navigate('/')}
                         className="p-1.5 sm:p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors"
                     >
                         <ArrowLeft size={20} className="sm:w-6 sm:h-6" />
