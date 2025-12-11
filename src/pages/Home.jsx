@@ -210,7 +210,7 @@ const Home = () => {
                                         Challenge our advanced AI in this retro classic. Can you beat the computer?
                                     </p>
                                     <button
-                                        onClick={() => window.location.href = '/pong'}
+                                        onClick={() => navigate('/pong')}
                                         className="bg-white text-indigo-600 px-8 py-3 rounded-full font-bold text-lg shadow-lg hover:bg-indigo-50 transition-colors flex items-center gap-2 group"
                                     >
                                         <Play fill="currentColor" className="group-hover:scale-110 transition-transform" />

@@ -15,7 +15,7 @@ const Layout = ({ children }) => {
                 <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
 
                     {/* Logo */}
-                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.location.href = '/'}>
+                    <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
                         <div className="bg-gradient-to-br from-blue-600 to-indigo-600 p-2 rounded-xl shadow-lg shadow-blue-500/30">
                             <Gamepad2 className="text-white w-6 h-6" />
                         </div>
