@@ -1,7 +1,7 @@
 import { useSearch } from '../../context/SearchContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Gamepad2, Search, Trophy, User, Menu } from 'lucide-react';
+import { Gamepad2, Search, Trophy, User, Menu, Github, Linkedin } from 'lucide-react';
 
 const Layout = ({ children }) => {
     const { searchTerm, setSearchTerm } = useSearch();
@@ -83,15 +83,29 @@ const Layout = ({ children }) => {
             {/* Footer - Fixed/Flexed at bottom */}
             <footer className="flex-none bg-slate-900 text-slate-400 py-3 border-t border-slate-800 z-40 text-xs sm:text-sm">
                 <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-2">
-                    <div>
-                        © 2024 ArcadeHub.
+                    <div className="font-medium">
+                        Built by <span className="text-white">Vijay Adithya B K</span>
                     </div>
 
                     <div className="flex items-center gap-4">
                         <span className="font-bold text-white uppercase tracking-wider hidden sm:inline">Connect:</span>
                         <div className="flex gap-3">
-                            <div className="w-6 h-6 bg-slate-800 rounded-full hover:bg-blue-600 transition-colors cursor-pointer flex items-center justify-center font-bold text-white">𝕏</div>
-                            <div className="w-6 h-6 bg-slate-800 rounded-full hover:bg-blue-400 transition-colors cursor-pointer flex items-center justify-center font-bold text-white">f</div>
+                            <a
+                                href="https://vijayadithyabk.github.io/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-8 h-8 bg-slate-800 rounded-full hover:bg-white hover:text-black transition-all cursor-pointer flex items-center justify-center"
+                            >
+                                <Github size={18} />
+                            </a>
+                            <a
+                                href="https://www.linkedin.com/in/vijayadithyabk/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="w-8 h-8 bg-slate-800 rounded-full hover:bg-[#0077b5] hover:text-white transition-all cursor-pointer flex items-center justify-center"
+                            >
+                                <Linkedin size={18} />
+                            </a>
                         </div>
                     </div>
                 </div>
