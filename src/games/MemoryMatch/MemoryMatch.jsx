@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout/Layout';
 import Button from '../../components/UI/Button';
 import GameWrapper from '../../components/UI/GameWrapper';
-import { RotateCcw, Brain, Check, X } from 'lucide-react';
+import { RotateCcw, Brain, Check, X, Trophy } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useLeaderboard } from '../../context/LeaderboardContext';
 
 const ICONS = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼'];
 const CARDS = [...ICONS, ...ICONS];
@@ -12,8 +14,39 @@ const MemoryMatch = () => {
     const [flipped, setFlipped] = useState([]);
     const [solved, setSolved] = useState([]);
     const [moves, setMoves] = useState(0);
-    const [disabled, setDisabled] = useState(false);
+    const [timer, setTimer] = useState(0);
+
     const [gameWon, setGameWon] = useState(false);
+    const [disabled, setDisabled] = useState(false);
+
+    const [isGameActive, setIsGameActive] = useState(false);
+
+    const { user } = useAuth();
+    const { addScore } = useLeaderboard();
+
+    // Timer Logic
+    useEffect(() => {
+        let interval;
+        if (isGameActive && !gameWon) {
+            interval = setInterval(() => {
+                setTimer(t => t + 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [isGameActive, gameWon]);
+
+    // Check for Win and submit score based on timer
+    useEffect(() => {
+        if (gameWon && user) {
+            addScore('memory', user.username, timer);
+        }
+    }, [gameWon]);
+
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
 
     useEffect(() => {
         initializeGame();
@@ -26,15 +59,19 @@ const MemoryMatch = () => {
         setFlipped([]);
         setSolved([]);
         setMoves(0);
+        setTimer(0);
         setGameWon(false);
         setDisabled(false);
+        setIsGameActive(false);
     };
 
+    // ... (handleClick logic)
     const handleClick = (id) => {
         if (disabled || flipped.includes(id) || solved.includes(id)) return;
 
         if (flipped.length === 0) {
             setFlipped([id]);
+            if (!isGameActive) setIsGameActive(true);
             return;
         }
 
@@ -76,32 +113,32 @@ const MemoryMatch = () => {
                     <div className="flex justify-between w-full max-w-md mb-6">
                         <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100">
                             <Brain className="text-orange-500" size={20} />
-                            <span className="font-bold text-slate-700">Moves: {moves}</span>
+                            <span className="font-bold text-slate-700">Time: {formatTime(timer)}</span>
                         </div>
                         {gameWon && (
                             <div className="flex items-center gap-2 bg-green-100 px-4 py-2 rounded-full shadow-sm text-green-700 font-bold animate-bounce">
-                                <Check size={20} /> Complete!
+                                <Check size={20} /> <Trophy size={14} /> Time Saved!
                             </div>
                         )}
                     </div>
 
-                    <div className="grid grid-cols-4 gap-3 sm:gap-4 max-w-md w-full">
+                    <div className="grid grid-cols-4 gap-2 sm:gap-4 w-full max-w-[80vmin] aspect-square">
                         {cards.map((card) => (
                             <div
                                 key={card.id}
                                 onClick={() => handleClick(card.id)}
                                 className={`
-                            aspect-square rounded-xl cursor-pointer transition-all duration-300 transform perspective-1000 relative
+                            w-full h-full aspect-square rounded-xl cursor-pointer transition-all duration-300 transform perspective-1000 relative
                             ${flipped.includes(card.id) || solved.includes(card.id) ? 'rotate-y-180' : 'hover:scale-105'}
                         `}
                             >
                                 <div className={`
-                            w-full h-full rounded-xl shadow-md border-b-4 flex items-center justify-center text-4xl transition-all duration-300
+                            w-full h-full rounded-xl shadow-md border-b-4 flex items-center justify-center text-3xl sm:text-5xl transition-all duration-300
                             ${flipped.includes(card.id) || solved.includes(card.id)
                                         ? 'bg-white border-orange-200 rotate-y-180'
                                         : 'bg-orange-500 border-orange-600'}
                         `}>
-                                    {flipped.includes(card.id) || solved.includes(card.id) ? card.icon : <span className="text-2xl text-white/50 font-black">?</span>}
+                                    {flipped.includes(card.id) || solved.includes(card.id) ? card.icon : <span className="text-2xl sm:text-4xl text-white/50 font-black">?</span>}
                                 </div>
                             </div>
                         ))}

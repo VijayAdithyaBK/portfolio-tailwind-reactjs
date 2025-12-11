@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../../components/Layout/Layout';
 import Button from '../../components/UI/Button';
 import GameWrapper from '../../components/UI/GameWrapper';
-import { Play, RotateCcw } from 'lucide-react';
+import { Play, RotateCcw, Trophy } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useLeaderboard } from '../../context/LeaderboardContext';
 
 const COLORS = [
     { id: 0, color: 'green', bg: 'bg-green-500', active: 'bg-green-400 shadow-[0_0_30px_#4ade80]', sound: 261.6 }, // C4
@@ -20,6 +22,9 @@ const SimonSays = () => {
     const [gameOver, setGameOver] = useState(false);
     const [score, setScore] = useState(0);
     const [highScore, setHighScore] = useState(0);
+
+    const { user } = useAuth();
+    const { addScore } = useLeaderboard();
 
     const audioContext = useRef(null);
 
@@ -89,6 +94,9 @@ const SimonSays = () => {
             if (score > highScore) {
                 setHighScore(score);
                 localStorage.setItem('simonHighScore', score);
+            }
+            if (user && score > 0) {
+                addScore('simon', user.username, score);
             }
             // Failure sound
             const osc = audioContext.current.createOscillator();
@@ -179,6 +187,11 @@ const SimonSays = () => {
                     {gameOver && (
                         <div className="mt-8 text-center animate-bounce">
                             <h3 className="text-3xl font-black text-red-500 mb-2">WRONG MOVE!</h3>
+                            {user && score > 0 && (
+                                <div className="flex items-center justify-center gap-2 text-white mb-2 font-bold text-sm bg-red-500/20 py-1 rounded-full">
+                                    <Trophy size={14} /> Score Saved!
+                                </div>
+                            )}
                             <Button onClick={resetGame} className="mt-4 px-8 shadow-lg shadow-red-500/20">Try Again</Button>
                         </div>
                     )}

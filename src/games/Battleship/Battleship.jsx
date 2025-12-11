@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout/Layout';
 import Button from '../../components/UI/Button';
 import GameWrapper from '../../components/UI/GameWrapper';
-import { Crosshair, Target, Waves, RotateCcw } from 'lucide-react';
+import { Crosshair, Target, Waves, RotateCcw, Trophy } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useLeaderboard } from '../../context/LeaderboardContext';
 
 const GRID_SIZE = 6;
 const SHIP_SIZES = [3, 2, 2, 1]; // 4 ships
@@ -17,6 +19,17 @@ const Battleship = () => {
     const [isPlayerTurn, setIsPlayerTurn] = useState(true);
     const [winner, setWinner] = useState(null);
     const [log, setLog] = useState(["Welcome! Place your fleet."]);
+    const [moves, setMoves] = useState(0);
+
+    const { user } = useAuth();
+    const { addScore } = useLeaderboard();
+
+    // Check for Win
+    useEffect(() => {
+        if (winner === 'Player' && user) {
+            addScore('battleship', user.username, moves);
+        }
+    }, [winner]);
 
     useEffect(() => {
         if (gameState === 'playing' && !isPlayerTurn) {
@@ -61,12 +74,15 @@ const Battleship = () => {
         setComputerBoard(placeShipsRandomly(computerBoard));
         setGameState('playing');
         setIsPlayerTurn(true);
+        setMoves(0);
         addLog("Game Started! Fire at enemy waters.");
     };
 
     // --- Gameplay ---
     const handlePlayerFire = (r, c) => {
         if (gameState !== 'playing' || !isPlayerTurn || computerVisibleBoard[r][c]) return;
+
+        setMoves(m => m + 1); // Increment moves
 
         const isHit = computerBoard[r][c] === 1;
         const newVisible = computerVisibleBoard.map(row => [...row]);
@@ -133,6 +149,7 @@ const Battleship = () => {
         setComputerVisibleBoard(Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null)));
         setGameState('setup');
         setWinner(null);
+        setMoves(0);
         setLog(["Welcome! Place your fleet."]);
     };
 
@@ -201,6 +218,15 @@ const Battleship = () => {
                                     </div>
                                 )}
 
+                                {winner === 'Player' && user && (
+                                    <div className="flex items-center gap-2 text-yellow-400 font-bold bg-slate-800 px-4 py-2 rounded-full border border-yellow-500/30">
+                                        <Trophy size={16} /> Saved!
+                                    </div>
+                                )}
+                                <div className="text-white font-mono text-xl mt-2">
+                                    Moves: {moves}
+                                </div>
+
                                 <Button onClick={resetGame} variant="secondary" className="w-full">
                                     <RotateCcw size={18} /> Restart Mission
                                 </Button>
@@ -235,7 +261,7 @@ const Battleship = () => {
                     )}
                 </div>
             </GameWrapper>
-        </Layout>
+        </Layout >
     );
 };
 

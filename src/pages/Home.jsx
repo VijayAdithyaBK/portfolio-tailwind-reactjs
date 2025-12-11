@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout/Layout';
-import { Gamepad2, Brain, Scissors, Grid3x3, Hash, CircleDot, Crosshair, Cpu, Flag, MonitorPlay, Hammer, Play, Zap, Star } from 'lucide-react';
+import { useSearch } from '../context/SearchContext';
+import { Gamepad2, Brain, Scissors, Grid3x3, Hash, CircleDot, Crosshair, Cpu, Flag, MonitorPlay, Hammer, Play, Zap, Star, Search } from 'lucide-react';
 
 const games = [
     {
@@ -176,55 +177,94 @@ const GameCard = ({ game }) => {
 };
 
 const Home = () => {
+    const { searchTerm } = useSearch();
+    const [showAll, setShowAll] = useState(false);
+
+    // Filter games based on search term
+    const filteredGames = games.filter(game =>
+        game.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        game.category.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    // Limit to 10 games (2 rows of 5) unless searching or "show all" is active
+    const displayedGames = (showAll || searchTerm) ? filteredGames : filteredGames.slice(0, 10);
+
     return (
         <Layout>
-            <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="h-full w-full overflow-y-auto overflow-x-hidden">
+                <div className="max-w-7xl mx-auto px-4 py-8">
 
-                {/* Hero / Featured */}
-                <section className="mb-12">
-                    <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-700 shadow-2xl h-80 sm:h-96 flex items-center">
-                        <div className="relative z-10 px-8 sm:px-16 max-w-2xl">
-                            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md rounded-full px-3 py-1 text-white text-xs font-bold mb-4 border border-white/20">
-                                <Zap size={12} fill="currentColor" className="text-yellow-400" />
-                                FEATURED GAME
+                    {/* Hero / Featured - Only show when NOT searching */}
+                    {!searchTerm && (
+                        <section className="mb-12">
+                            <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-700 shadow-2xl h-80 sm:h-96 flex items-center">
+                                <div className="relative z-10 px-8 sm:px-16 max-w-2xl">
+                                    <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-md rounded-full px-3 py-1 text-white text-xs font-bold mb-4 border border-white/20">
+                                        <Zap size={12} fill="currentColor" className="text-yellow-400" />
+                                        FEATURED GAME
+                                    </div>
+                                    <h1 className="text-4xl sm:text-6xl font-black text-white mb-4 leading-tight">
+                                        PLAY <br /> PONG
+                                    </h1>
+                                    <p className="text-indigo-100 text-lg mb-8 max-w-md">
+                                        Challenge our advanced AI in this retro classic. Can you beat the computer?
+                                    </p>
+                                    <button
+                                        onClick={() => window.location.href = '/pong'}
+                                        className="bg-white text-indigo-600 px-8 py-3 rounded-full font-bold text-lg shadow-lg hover:bg-indigo-50 transition-colors flex items-center gap-2 group"
+                                    >
+                                        <Play fill="currentColor" className="group-hover:scale-110 transition-transform" />
+                                        Play Now
+                                    </button>
+                                </div>
+
+                                {/* Abstract Shapes */}
+                                <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-indigo-500/50 to-transparent skew-x-12 transform translate-x-20" />
+                                <div className="absolute right-20 top-20 w-32 h-32 bg-purple-500 rounded-full blur-3xl opacity-50" />
                             </div>
-                            <h1 className="text-4xl sm:text-6xl font-black text-white mb-4 leading-tight">
-                                PLAY <br /> PONG
-                            </h1>
-                            <p className="text-indigo-100 text-lg mb-8 max-w-md">
-                                Challenge our advanced AI in this retro classic. Can you beat the computer?
-                            </p>
-                            <button
-                                onClick={() => window.location.href = '/pong'}
-                                className="bg-white text-indigo-600 px-8 py-3 rounded-full font-bold text-lg shadow-lg hover:bg-indigo-50 transition-colors flex items-center gap-2 group"
-                            >
-                                <Play fill="currentColor" className="group-hover:scale-110 transition-transform" />
-                                Play Now
-                            </button>
+                        </section>
+                    )}
+
+                    {/* Categories / Sections */}
+                    <section>
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
+                                {searchTerm ? (
+                                    <>
+                                        <Search className="text-blue-500" />
+                                        Search Results
+                                    </>
+                                ) : (
+                                    <>
+                                        <Star className="text-yellow-400" fill="currentColor" />
+                                        Popular Games
+                                    </>
+                                )}
+                            </h2>
+                            {!searchTerm && (
+                                <button
+                                    onClick={() => setShowAll(!showAll)}
+                                    className="text-sm font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                                >
+                                    {showAll ? 'Show Less' : 'View All'}
+                                </button>
+                            )}
                         </div>
 
-                        {/* Abstract Shapes */}
-                        <div className="absolute right-0 top-0 bottom-0 w-1/2 bg-gradient-to-l from-indigo-500/50 to-transparent skew-x-12 transform translate-x-20" />
-                        <div className="absolute right-20 top-20 w-32 h-32 bg-purple-500 rounded-full blur-3xl opacity-50" />
-                    </div>
-                </section>
-
-                {/* Categories / Sections */}
-                <section>
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-                            <Star className="text-yellow-400" fill="currentColor" />
-                            Popular Games
-                        </h2>
-                        <a href="#" className="text-sm font-bold text-blue-600 hover:text-blue-700">View All</a>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
-                        {games.map(game => (
-                            <GameCard key={game.id} game={game} />
-                        ))}
-                    </div>
-                </section>
+                        {filteredGames.length > 0 ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+                                {displayedGames.map(game => (
+                                    <GameCard key={game.id} game={game} />
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-12 text-slate-400">
+                                <p className="text-lg font-bold">No games found matching "{searchTerm}"</p>
+                                <p>Try searching for "Puzzle", "Action", or "Snake"</p>
+                            </div>
+                        )}
+                    </section>
+                </div>
             </div>
         </Layout>
     );

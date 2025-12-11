@@ -16,28 +16,44 @@ import FlappyBird from './games/FlappyBird/FlappyBird';
 import SimonSays from './games/SimonSays/SimonSays';
 import Breakout from './games/Breakout/Breakout';
 
+import { AuthProvider } from './context/AuthContext';
+import { SearchProvider } from './context/SearchContext';
+import { LeaderboardProvider } from './context/LeaderboardContext';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import Leaderboard from './pages/Leaderboard';
+
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/tictactoe" element={<TicTacToe />} />
-        <Route path="/memory" element={<MemoryMatch />} />
-        <Route path="/rps" element={<RockPaperScissors />} />
-        <Route path="/2048" element={<Game2048 />} />
-        <Route path="/sudoku" element={<Sudoku />} />
-        <Route path="/connect4" element={<ConnectFour />} />
-        <Route path="/battleship" element={<Battleship />} />
-        <Route path="/snake" element={<Snake />} />
-        <Route path="/minesweeper" element={<Minesweeper />} />
-        <Route path="/pong" element={<Pong />} />
-        <Route path="/whack" element={<WhackAMole />} />
-        <Route path="/flappy" element={<FlappyBird />} />
-        <Route path="/simon" element={<SimonSays />} />
-        <Route path="/breakout" element={<Breakout />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <AuthProvider>
+      <SearchProvider>
+        <LeaderboardProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/tictactoe" element={<TicTacToe />} />
+              <Route path="/memory" element={<MemoryMatch />} />
+              <Route path="/rps" element={<RockPaperScissors />} />
+              <Route path="/2048" element={<Game2048 />} />
+              <Route path="/sudoku" element={<Sudoku />} />
+              <Route path="/connect4" element={<ConnectFour />} />
+              <Route path="/battleship" element={<Battleship />} />
+              <Route path="/snake" element={<Snake />} />
+              <Route path="/minesweeper" element={<Minesweeper />} />
+              <Route path="/pong" element={<Pong />} />
+              <Route path="/whack" element={<WhackAMole />} />
+              <Route path="/flappy" element={<FlappyBird />} />
+              <Route path="/simon" element={<SimonSays />} />
+              <Route path="/breakout" element={<Breakout />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </LeaderboardProvider>
+      </SearchProvider>
+    </AuthProvider>
   );
 }
 

@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout/Layout';
 import Button from '../../components/UI/Button';
 import GameWrapper from '../../components/UI/GameWrapper';
-import { X, Circle, RotateCcw, Monitor, Users } from 'lucide-react';
+import { X, Circle, RotateCcw, Monitor, Users, Trophy } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useLeaderboard } from '../../context/LeaderboardContext';
 
 const WINNING_COMBINATIONS = [
     [0, 1, 2], [3, 4, 5], [6, 7, 8],
@@ -17,6 +19,15 @@ const TicTacToe = () => {
     const [winningLine, setWinningLine] = useState([]);
     const [vsComputer, setVsComputer] = useState(true);
     const [isComputerThinking, setIsComputerThinking] = useState(false);
+
+    const { user } = useAuth();
+    const { addScore } = useLeaderboard();
+
+    // Check for Win and submit score
+    // Check for Win
+    useEffect(() => {
+        // Removed score submission for Tic Tac Toe as requested
+    }, [winner, vsComputer]);
 
     useEffect(() => {
         if (vsComputer && !isXNext && !winner && !board.every(Boolean)) {
@@ -142,6 +153,11 @@ const TicTacToe = () => {
                             ) : (
                                 <span className="text-2xl font-bold text-green-500 animate-bounce flex items-center gap-2">
                                     Winner: {winner === 'X' ? <X className="w-8 h-8" /> : <Circle className="w-8 h-8" />}
+                                    {winner === 'X' && vsComputer && user && (
+                                        <div className="ml-4 flex items-center gap-1 text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full border border-green-200">
+                                            <Trophy size={14} /> +100 Pts
+                                        </div>
+                                    )}
                                 </span>
                             )
                         ) : (

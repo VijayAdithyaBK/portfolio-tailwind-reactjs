@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../../components/Layout/Layout';
 import Button from '../../components/UI/Button';
 import GameWrapper from '../../components/UI/GameWrapper';
-import { Play, RotateCcw } from 'lucide-react';
+import { Play, RotateCcw, Trophy } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useLeaderboard } from '../../context/LeaderboardContext';
 
 const FlappyBird = () => {
     const canvasRef = useRef(null);
@@ -11,24 +13,49 @@ const FlappyBird = () => {
     const [gameOver, setGameOver] = useState(false);
     const [highScore, setHighScore] = useState(0);
 
+    const { user } = useAuth();
+    const { addScore } = useLeaderboard();
+
     // Game constants/refs to avoid stale closure in loop
     const gameState = useRef({
         birdY: 200,
         velocity: 0,
         pipes: [],
-        frame: 0
+        frame: 0,
+        startedFlying: false // track if user has pressed space to start flying
     });
 
+    // Ref to track if we should keep looping (avoids stale closures)
+    const isPlayingRef = useRef(false);
     const requestRef = useRef();
+    const scoreRef = useRef(0);
 
     useEffect(() => {
         const saved = localStorage.getItem('flappyHighScore');
         if (saved) setHighScore(parseInt(saved));
     }, []);
 
-    const jump = () => {
+    useEffect(() => {
+        isPlayingRef.current = isPlaying;
+        if (isPlaying) {
+            // Start loop
+            requestRef.current = requestAnimationFrame(gameLoop);
+        } else {
+            cancelAnimationFrame(requestRef.current);
+        }
+        return () => cancelAnimationFrame(requestRef.current);
+    }, [isPlaying]);
+
+    const jump = (e) => {
+        if (e) e.preventDefault();
         if (!isPlaying) return;
-        gameState.current.velocity = -8;
+
+        // On first jump, enable physics
+        if (!gameState.current.startedFlying) {
+            gameState.current.startedFlying = true;
+        }
+
+        gameState.current.velocity = -7; // Jump strength
     };
 
     const resetGame = () => {
@@ -36,70 +63,79 @@ const FlappyBird = () => {
             birdY: 200,
             velocity: 0,
             pipes: [],
-            frame: 0
+            frame: 0,
+            startedFlying: false
         };
         setScore(0);
+        scoreRef.current = 0;
         setGameOver(false);
         setIsPlaying(true);
-        requestRef.current = requestAnimationFrame(gameLoop);
     };
 
     const gameLoop = () => {
+        if (!isPlayingRef.current) return;
+
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         const state = gameState.current;
 
-        // Physics
-        state.velocity += 0.5; // Gravity
-        state.birdY += state.velocity;
-        state.frame++;
+        // Physics - Only apply if flying has started
+        if (state.startedFlying) {
+            state.velocity += 0.4; // Gravity
+            state.birdY += state.velocity;
+            state.frame++;
 
-        // Pipe Spawning
-        if (state.frame % 100 === 0) {
-            const gapHeight = 150;
-            const pipeTopHeight = Math.random() * (canvas.height - gapHeight - 100) + 50;
-            state.pipes.push({
-                x: canvas.width,
-                topHeight: pipeTopHeight,
-                bottomY: pipeTopHeight + gapHeight,
-                passed: false
+            // Pipe Spawning
+            if (state.frame % 120 === 0) {
+                const gapHeight = 150;
+                const pipeTopHeight = Math.random() * (canvas.height - gapHeight - 100) + 50;
+                state.pipes.push({
+                    x: canvas.width,
+                    topHeight: pipeTopHeight,
+                    bottomY: pipeTopHeight + gapHeight,
+                    passed: false
+                });
+            }
+
+            // Pipe Movement & Collision
+            state.pipes.forEach(pipe => {
+                pipe.x -= 2;
+
+                // Collision Check
+                if (
+                    100 + 30 > pipe.x && 100 < pipe.x + 50 &&
+                    (state.birdY < pipe.topHeight || state.birdY + 30 > pipe.bottomY)
+                ) {
+                    endGame();
+                }
+
+                // Score
+                if (!pipe.passed && pipe.x + 50 < 100) {
+                    setScore(s => {
+                        const newScore = s + 1;
+                        scoreRef.current = newScore;
+                        return newScore;
+                    });
+                    pipe.passed = true;
+                }
             });
-        }
 
-        // Pipe Movement & Collision
-        state.pipes.forEach(pipe => {
-            pipe.x -= 3;
+            // Remove off-screen pipes
+            state.pipes = state.pipes.filter(p => p.x > -50);
 
-            // Collision Check
-            if (
-                // Bird within Pipe X range
-                100 + 30 > pipe.x && 100 < pipe.x + 50 &&
-                // Bird hitting Top Pipe OR Bottom Pipe
-                (state.birdY < pipe.topHeight || state.birdY + 30 > pipe.bottomY)
-            ) {
+            // Floor/Ceiling
+            if (state.birdY > canvas.height - 30 || state.birdY < 0) {
                 endGame();
             }
-
-            // Score
-            if (!pipe.passed && pipe.x + 50 < 100) {
-                setScore(s => s + 1);
-                pipe.passed = true;
-            }
-        });
-
-        // Remove off-screen pipes
-        state.pipes = state.pipes.filter(p => p.x > -50);
-
-        // Floor/Ceiling Collision
-        if (state.birdY > canvas.height - 30 || state.birdY < 0) {
-            endGame();
+        } else {
+            state.frame++;
+            state.birdY = 200 + Math.sin(state.frame * 0.1) * 5;
         }
 
-        // Draw
         draw(ctx, canvas, state);
 
-        if (isPlaying) {
+        if (isPlayingRef.current) {
             requestRef.current = requestAnimationFrame(gameLoop);
         }
     };
@@ -109,9 +145,15 @@ const FlappyBird = () => {
         setGameOver(true);
         cancelAnimationFrame(requestRef.current);
 
-        if (score > highScore) {
-            setHighScore(score);
-            localStorage.setItem('flappyHighScore', score);
+        const currentScore = scoreRef.current; // Use ref for latest score
+
+        if (currentScore > highScore) {
+            setHighScore(currentScore);
+            localStorage.setItem('flappyHighScore', currentScore);
+        }
+
+        if (user && currentScore > 0) {
+            addScore('flappy', user.username, currentScore);
         }
     };
 
@@ -163,11 +205,30 @@ const FlappyBird = () => {
         ctx.fillRect(0, canvas.height - 10, canvas.width, 10);
         ctx.fillStyle = '#65a30d'; // Grass top
         ctx.fillRect(0, canvas.height - 15, canvas.width, 5);
+
+        // "Get Ready" Hint
+        if (!state.startedFlying && isPlaying) {
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+            ctx.font = 'bold 20px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText("Press Space or Click to Fly!", canvas.width / 2, canvas.height / 2 + 50);
+        }
     };
 
     useEffect(() => {
-        return () => cancelAnimationFrame(requestRef.current);
-    }, []);
+        const handleKey = (e) => {
+            if (e.code === 'Space') {
+                e.preventDefault(); // Prevent scrolling
+                if (isPlayingRef.current) jump();
+                else if (gameOver) resetGame();
+            }
+        };
+        window.addEventListener('keydown', handleKey);
+        return () => {
+            window.removeEventListener('keydown', handleKey);
+            cancelAnimationFrame(requestRef.current);
+        }
+    }, [gameOver]); // depend on gameOver to allow restart
 
     return (
         <Layout>
@@ -181,7 +242,7 @@ const FlappyBird = () => {
                     "Don't hit the ground or the pipes!"
                 ]}
             >
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center w-full h-full justify-center">
 
                     <div className="flex justify-between w-full max-w-[400px] mb-4 text-xl font-bold px-4">
                         <div className="bg-white px-4 py-2 rounded-full shadow-sm text-slate-700">Score: {score}</div>
@@ -194,6 +255,7 @@ const FlappyBird = () => {
                             width={400}
                             height={500}
                             onClick={jump}
+                            style={{ maxHeight: '80vmin', width: 'auto', height: 'auto', aspectRatio: '4/5' }}
                             className="cursor-pointer bg-sky-300 max-w-full block"
                         />
 
@@ -210,6 +272,11 @@ const FlappyBird = () => {
                                 <div className="bg-white p-6 rounded-xl text-center animate-bounce mb-6">
                                     <h2 className="text-3xl font-black text-slate-800 mb-2">GAME OVER</h2>
                                     <p className="text-xl text-blue-500 font-bold">Score: {score}</p>
+                                    {user && (
+                                        <div className="flex items-center justify-center gap-2 text-yellow-500 mt-2 font-bold text-sm">
+                                            <Trophy size={14} /> Score Saved!
+                                        </div>
+                                    )}
                                 </div>
                                 <Button onClick={resetGame} variant="primary" className="px-8 py-3 text-lg">
                                     <RotateCcw size={20} /> Try Again

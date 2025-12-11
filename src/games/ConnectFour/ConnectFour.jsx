@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout/Layout';
 import Button from '../../components/UI/Button';
 import GameWrapper from '../../components/UI/GameWrapper';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, Trophy } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useLeaderboard } from '../../context/LeaderboardContext';
 
 const ROWS = 6;
 const COLS = 7;
@@ -11,169 +13,173 @@ const ConnectFour = () => {
     const [board, setBoard] = useState(Array(ROWS).fill(null).map(() => Array(COLS).fill(null)));
     const [isPlayerTurn, setIsPlayerTurn] = useState(true);
     const [winner, setWinner] = useState(null);
-    const [isThinking, setIsThinking] = useState(false);
+    const [timer, setTimer] = useState(0);
 
+    const { user } = useAuth();
+    const { addScore } = useLeaderboard();
+
+    // Timer Logic
     useEffect(() => {
-        if (!isPlayerTurn && !winner) {
-            setIsThinking(true);
-            const timer = setTimeout(() => {
-                makeComputerMove();
-                setIsThinking(false);
-            }, 800);
-            return () => clearTimeout(timer);
+        let interval;
+        if (!winner) {
+            interval = setInterval(() => {
+                setTimer(t => t + 1);
+            }, 1000);
         }
-    }, [isPlayerTurn, winner]);
+        return () => clearInterval(interval);
+    }, [winner]);
 
-    const checkWinner = (currentBoard) => {
-        // Check horizontal
+    // Check for Win
+    useEffect(() => {
+        if (winner === 'P' && user) {
+            addScore('connect4', user.username, timer);
+        }
+    }, [winner]);
+
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    // Check for Win
+    const checkWin = (boardState) => {
+        // Horizontal, Vertical, Diagonal checks
+        const checkLine = (a, b, c, d) => {
+            return (a && a === b && a === c && a === d) ? a : null;
+        };
+
+        // Horizontal
         for (let r = 0; r < ROWS; r++) {
             for (let c = 0; c < COLS - 3; c++) {
-                if (currentBoard[r][c] &&
-                    currentBoard[r][c] === currentBoard[r][c + 1] &&
-                    currentBoard[r][c] === currentBoard[r][c + 2] &&
-                    currentBoard[r][c] === currentBoard[r][c + 3]) {
-                    return currentBoard[r][c];
-                }
+                if (checkLine(boardState[r][c], boardState[r][c + 1], boardState[r][c + 2], boardState[r][c + 3])) return boardState[r][c];
             }
         }
-        // Check vertical
+        // Vertical
         for (let r = 0; r < ROWS - 3; r++) {
             for (let c = 0; c < COLS; c++) {
-                if (currentBoard[r][c] &&
-                    currentBoard[r][c] === currentBoard[r + 1][c] &&
-                    currentBoard[r][c] === currentBoard[r + 2][c] &&
-                    currentBoard[r][c] === currentBoard[r + 3][c]) {
-                    return currentBoard[r][c];
-                }
+                if (checkLine(boardState[r][c], boardState[r + 1][c], boardState[r + 2][c], boardState[r + 3][c])) return boardState[r][c];
             }
         }
-        // Check diagonal down-right
+        // Diagonal Down-Right
         for (let r = 0; r < ROWS - 3; r++) {
             for (let c = 0; c < COLS - 3; c++) {
-                if (currentBoard[r][c] &&
-                    currentBoard[r][c] === currentBoard[r + 1][c + 1] &&
-                    currentBoard[r][c] === currentBoard[r + 2][c + 2] &&
-                    currentBoard[r][c] === currentBoard[r + 3][c + 3]) {
-                    return currentBoard[r][c];
-                }
+                if (checkLine(boardState[r][c], boardState[r + 1][c + 1], boardState[r + 2][c + 2], boardState[r + 3][c + 3])) return boardState[r][c];
             }
         }
-        // Check diagonal up-right
+        // Diagonal Up-Right
         for (let r = 3; r < ROWS; r++) {
             for (let c = 0; c < COLS - 3; c++) {
-                if (currentBoard[r][c] &&
-                    currentBoard[r][c] === currentBoard[r - 1][c + 1] &&
-                    currentBoard[r][c] === currentBoard[r - 2][c + 2] &&
-                    currentBoard[r][c] === currentBoard[r - 3][c + 3]) {
-                    return currentBoard[r][c];
-                }
+                if (checkLine(boardState[r][c], boardState[r - 1][c + 1], boardState[r - 2][c + 2], boardState[r - 3][c + 3])) return boardState[r][c];
             }
         }
         return null;
     };
 
-    const getLowestEmptyRow = (currentBoard, col) => {
+    const dropPiece = (colIndex) => {
+        if (!isPlayerTurn || winner) return;
+
+        let rowIndex = -1;
+        const newBoard = board.map(row => [...row]);
+
         for (let r = ROWS - 1; r >= 0; r--) {
-            if (!currentBoard[r][col]) return r;
-        }
-        return -1;
-    };
-
-    const dropPiece = (col) => {
-        if (winner || (isThinking && !isPlayerTurn)) return;
-
-        const row = getLowestEmptyRow(board, col);
-        if (row === -1) return; // Column full
-
-        const newBoard = board.map(r => [...r]);
-        newBoard[row][col] = isPlayerTurn ? 'P' : 'C';
-        setBoard(newBoard);
-
-        const win = checkWinner(newBoard);
-        if (win) {
-            setWinner(win);
-        } else {
-            setIsPlayerTurn(!isPlayerTurn);
-        }
-    };
-
-    const makeComputerMove = () => {
-        const validCols = [];
-        for (let c = 0; c < COLS; c++) {
-            if (getLowestEmptyRow(board, c) !== -1) validCols.push(c);
-        }
-
-        if (validCols.length === 0) return; // Draw?
-
-        // 1. Win if possible, 2. Block win, 3. Random
-        let moveCol = -1;
-
-        // Check Win
-        for (let c of validCols) {
-            const tempBoard = board.map(r => [...r]);
-            const r = getLowestEmptyRow(tempBoard, c);
-            tempBoard[r][c] = 'C';
-            if (checkWinner(tempBoard) === 'C') {
-                moveCol = c;
+            if (!newBoard[r][colIndex]) {
+                newBoard[r][colIndex] = 'P';
+                rowIndex = r;
                 break;
             }
         }
 
-        // Check Block
-        if (moveCol === -1) {
-            for (let c of validCols) {
-                const tempBoard = board.map(r => [...r]);
-                const r = getLowestEmptyRow(tempBoard, c);
-                tempBoard[r][c] = 'P';
-                if (checkWinner(tempBoard) === 'P') {
-                    moveCol = c;
-                    break;
-                }
+        if (rowIndex === -1) return; // Column full
+
+        setBoard(newBoard);
+
+        const win = checkWin(newBoard);
+        if (win) {
+            setWinner(win);
+        } else {
+            setIsPlayerTurn(false);
+        }
+    };
+
+    const makeComputerMove = () => {
+        if (winner) return;
+
+        // Simple AI: Random valid move
+        const availableCols = [];
+        for (let c = 0; c < COLS; c++) {
+            if (!board[0][c]) availableCols.push(c);
+        }
+
+        if (availableCols.length === 0) return; // Draw?
+
+        const randomCol = availableCols[Math.floor(Math.random() * availableCols.length)];
+
+        const newBoard = board.map(row => [...row]);
+        for (let r = ROWS - 1; r >= 0; r--) {
+            if (!newBoard[r][randomCol]) {
+                newBoard[r][randomCol] = 'C';
+                break;
             }
         }
 
-        // Random
-        if (moveCol === -1) {
-            moveCol = validCols[Math.floor(Math.random() * validCols.length)];
-        }
-
-        const row = getLowestEmptyRow(board, moveCol);
-        const newBoard = board.map(r => [...r]);
-        newBoard[row][moveCol] = 'C';
         setBoard(newBoard);
-
-        const win = checkWinner(newBoard);
-        if (win) setWinner(win);
-        else setIsPlayerTurn(true);
+        const win = checkWin(newBoard);
+        if (win) {
+            setWinner(win);
+        } else {
+            setIsPlayerTurn(true);
+        }
     };
+
+    useEffect(() => {
+        if (!isPlayerTurn && !winner) {
+            const timeout = setTimeout(makeComputerMove, 500);
+            return () => clearTimeout(timeout);
+        }
+    }, [isPlayerTurn, winner]);
 
     const resetGame = () => {
         setBoard(Array(ROWS).fill(null).map(() => Array(COLS).fill(null)));
         setWinner(null);
         setIsPlayerTurn(true);
-        setIsThinking(false);
+        setTimer(0);
     };
 
+    // In JSX:
     return (
         <Layout>
             <GameWrapper
                 title="Connect Four"
-                description="A game of strategy. Be the first to connect 4 discs of your color in a row!"
+                description="Connect four discs of your color in a row to win!"
                 instructions={[
-                    "Click on a column to drop your red disc.",
-                    "Try to connect 4 discs vertically, horizontally, or diagonally.",
-                    "Block the yellow computer discs from doing the same!"
+                    "Click on a column to drop your disc.",
+                    "Try to connect 4 discs horizontally, vertically, or diagonally.",
+                    "Block your opponent from doing the same!",
+                    "The game ends when the board is full or someone wins."
                 ]}
             >
                 <div className="flex flex-col items-center">
-                    <div className="mb-6 h-8 text-xl font-bold flex items-center justify-center">
-                        {winner ? (
-                            <span className={`px-6 py-2 rounded-full ${winner === 'P' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'} animate-bounce`}>
-                                {winner === 'P' ? 'You Win!' : 'Computer Wins!'}
-                            </span>
-                        ) : (
-                            <span className="text-slate-500 font-medium">
-                                {isPlayerTurn ? "Your Turn (Red)" : "Computer thinking..."}
+                    <div className="mb-6 flex flex-col items-center gap-2">
+                        <div className="bg-white px-4 py-2 rounded-full shadow-sm border border-slate-100 font-mono text-xl font-bold text-blue-600">
+                            {formatTime(timer)}
+                        </div>
+
+                        <div className="h-8 text-xl font-bold flex items-center justify-center">
+                            {winner ? (
+                                <span className={`px-6 py-2 rounded-full ${winner === 'P' ? 'bg-red-100 text-red-600' : 'bg-yellow-100 text-yellow-600'} animate-bounce`}>
+                                    {winner === 'P' ? 'You Win!' : 'Computer Wins!'}
+                                </span>
+                            ) : (
+                                <span className="text-slate-500 font-medium">
+                                    {isPlayerTurn ? "Your Turn (Red)" : "Computer thinking..."}
+                                </span>
+                            )}
+                        </div>
+
+                        {winner === 'P' && user && (
+                            <span className="flex items-center gap-2 text-sm font-bold text-yellow-600 bg-yellow-100 px-3 py-1 rounded-full">
+                                <Trophy size={14} /> Time Saved!
                             </span>
                         )}
                     </div>
@@ -209,7 +215,7 @@ const ConnectFour = () => {
                     </div>
                 </div>
             </GameWrapper>
-        </Layout>
+        </Layout >
     );
 };
 

@@ -1,11 +1,17 @@
-import React from 'react';
-import { Gamepad2, Search, User, Trophy, Menu } from 'lucide-react';
+import { useSearch } from '../../context/SearchContext';
+import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { Gamepad2, Search, Trophy, User, Menu } from 'lucide-react';
 
 const Layout = ({ children }) => {
+    const { searchTerm, setSearchTerm } = useSearch();
+    const { user, logout } = useAuth();
+    const navigate = useNavigate();
+
     return (
-        <div className="min-h-screen bg-slate-100 font-sans text-slate-800">
+        <div className="flex flex-col h-[100dvh] bg-slate-100 font-sans text-slate-800 overflow-hidden">
             {/* Header */}
-            <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+            <header className="flex-none z-40 bg-white border-b border-slate-200 shadow-sm">
                 <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
 
                     {/* Logo */}
@@ -26,19 +32,42 @@ const Layout = ({ children }) => {
                         <input
                             type="text"
                             placeholder="Search for games..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all placeholder:text-slate-400 text-sm font-medium"
                         />
                     </div>
 
                     {/* Actions */}
                     <div className="flex items-center gap-2 sm:gap-4">
-                        <button className="p-2 hover:bg-slate-50 rounded-full text-slate-600 hover:text-blue-600 transition-colors hidden sm:block">
+                        <button
+                            onClick={() => navigate('/leaderboard')}
+                            className="p-2 hover:bg-slate-50 rounded-full text-slate-600 hover:text-blue-600 transition-colors hidden sm:block"
+                            title="Leaderboard"
+                        >
                             <Trophy size={20} />
                         </button>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-500/30">
-                            <User size={18} />
-                            <span className="hidden sm:inline">Login</span>
-                        </button>
+
+                        {user ? (
+                            <div className="flex items-center gap-3">
+                                <span className="text-sm font-bold text-slate-700 hidden sm:block">Hi, {user.username}</span>
+                                <button
+                                    onClick={logout}
+                                    className="px-4 py-2 bg-slate-200 text-slate-700 rounded-full font-bold text-sm hover:bg-slate-300 transition-all"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => navigate('/login')}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-full font-bold text-sm hover:bg-blue-700 active:scale-95 transition-all shadow-lg shadow-blue-500/30"
+                            >
+                                <User size={18} />
+                                <span className="hidden sm:inline">Login</span>
+                            </button>
+                        )}
+
                         <button className="md:hidden p-2 text-slate-600">
                             <Menu size={24} />
                         </button>
@@ -46,47 +75,25 @@ const Layout = ({ children }) => {
                 </div>
             </header>
 
-            {/* Main Content */}
-            <main className="w-full">
+            {/* Main Content Area - Occupies remaining space, NO SCROLL on this container */}
+            <main className="flex-1 w-full overflow-hidden relative flex flex-col">
                 {children}
             </main>
 
-            {/* Footer */}
-            <footer className="bg-slate-900 text-slate-400 py-12 mt-auto">
-                <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+            {/* Footer - Fixed/Flexed at bottom */}
+            <footer className="flex-none bg-slate-900 text-slate-400 py-3 border-t border-slate-800 z-40 text-xs sm:text-sm">
+                <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-2">
                     <div>
-                        <h3 className="text-white font-bold text-lg mb-4">ArcadeHub</h3>
-                        <p className="text-sm">The best free online games platform. Play exciting mini-games, challenge your friends, and track your high scores!</p>
+                        © 2024 ArcadeHub.
                     </div>
-                    <div>
-                        <h4 className="text-white font-bold mb-4">Categories</h4>
-                        <ul className="space-y-2 text-sm">
-                            <li className="hover:text-white cursor-pointer">Action</li>
-                            <li className="hover:text-white cursor-pointer">Puzzle</li>
-                            <li className="hover:text-white cursor-pointer">Strategy</li>
-                            <li className="hover:text-white cursor-pointer">Sports</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="text-white font-bold mb-4">Support</h4>
-                        <ul className="space-y-2 text-sm">
-                            <li className="hover:text-white cursor-pointer">Help Center</li>
-                            <li className="hover:text-white cursor-pointer">Terms of Service</li>
-                            <li className="hover:text-white cursor-pointer">Privacy Policy</li>
-                        </ul>
-                    </div>
-                    <div>
-                        <h4 className="text-white font-bold mb-4">Connect</h4>
-                        <div className="flex gap-4">
-                            {/* Social Icons Placeholders */}
-                            <div className="w-8 h-8 bg-slate-800 rounded-full hover:bg-blue-600 transition-colors cursor-pointer"></div>
-                            <div className="w-8 h-8 bg-slate-800 rounded-full hover:bg-blue-400 transition-colors cursor-pointer"></div>
-                            <div className="w-8 h-8 bg-slate-800 rounded-full hover:bg-pink-600 transition-colors cursor-pointer"></div>
+
+                    <div className="flex items-center gap-4">
+                        <span className="font-bold text-white uppercase tracking-wider hidden sm:inline">Connect:</span>
+                        <div className="flex gap-3">
+                            <div className="w-6 h-6 bg-slate-800 rounded-full hover:bg-blue-600 transition-colors cursor-pointer flex items-center justify-center font-bold text-white">𝕏</div>
+                            <div className="w-6 h-6 bg-slate-800 rounded-full hover:bg-blue-400 transition-colors cursor-pointer flex items-center justify-center font-bold text-white">f</div>
                         </div>
                     </div>
-                </div>
-                <div className="max-w-7xl mx-auto px-4 border-t border-slate-800 pt-8 text-center text-xs">
-                    © 2024 ArcadeHub. All rights reserved.
                 </div>
             </footer>
         </div>

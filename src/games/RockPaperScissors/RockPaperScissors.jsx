@@ -2,7 +2,9 @@ import React, { useState } from 'react';
 import Layout from '../../components/Layout/Layout';
 import Button from '../../components/UI/Button';
 import GameWrapper from '../../components/UI/GameWrapper';
-import { Scissors, Hand, Circle, RotateCcw } from 'lucide-react';
+import { Scissors, Hand, Circle, RotateCcw, Trophy } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useLeaderboard } from '../../context/LeaderboardContext';
 
 const CHOICES = [
     { name: 'Rock', icon: Circle, color: 'text-red-500', bg: 'bg-red-50' },
@@ -15,6 +17,9 @@ const RockPaperScissors = () => {
     const [computerChoice, setComputerChoice] = useState(null);
     const [result, setResult] = useState(null);
     const [score, setScore] = useState({ player: 0, computer: 0 });
+
+    const { user } = useAuth();
+    const { addScore } = useLeaderboard();
 
     const handleChoice = (choice) => {
         const computer = CHOICES[Math.floor(Math.random() * CHOICES.length)];
@@ -79,10 +84,10 @@ const RockPaperScissors = () => {
                                     key={choice.name}
                                     onClick={() => handleChoice(choice)}
                                     className={`
-                    w-24 h-24 sm:w-32 sm:h-32 rounded-2xl flex flex-col items-center justify-center gap-2
-                    border-b-4 transition-all hover:-translate-y-1 hover:shadow-xl
-                    bg-white border-slate-200 hover:border-blue-300
-                    `}
+                                    w-full aspect-square rounded-2xl flex flex-col items-center justify-center gap-2
+                                    border-b-4 transition-all hover:-translate-y-1 hover:shadow-xl
+                                    bg-white border-slate-200 hover:border-blue-300
+                                    `}
                                 >
                                     <choice.icon size={40} className={choice.color} />
                                     <span className="font-bold text-slate-600">{choice.name}</span>
@@ -105,6 +110,11 @@ const RockPaperScissors = () => {
 
                             <div className="text-center">
                                 <h2 className="text-3xl font-black text-slate-800 mb-6">{result}</h2>
+                                {result === 'You Win!' && user && (
+                                    <div className="flex items-center justify-center gap-2 text-green-500 mb-6 font-bold">
+                                        <Trophy size={16} /> Score Updated!
+                                    </div>
+                                )}
                                 <Button onClick={resetGame} className="px-12 py-3 text-lg shadow-lg">Play Again</Button>
                             </div>
                         </div>

@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout/Layout';
 import Button from '../../components/UI/Button';
 import GameWrapper from '../../components/UI/GameWrapper';
-import { RotateCcw, Flag, Bomb, Settings, ChevronDown } from 'lucide-react';
+import { RotateCcw, Flag, Bomb, Settings, ChevronDown, Trophy } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useLeaderboard } from '../../context/LeaderboardContext';
 
 const DIFFICULTIES = {
     Easy: { size: 8, mines: 10 },
@@ -18,18 +20,49 @@ const Minesweeper = () => {
     const [difficulty, setDifficulty] = useState('Medium');
     const [isPlaying, setIsPlaying] = useState(false);
 
+    const [timer, setTimer] = useState(0);
+    const { user } = useAuth();
+    const { addScore } = useLeaderboard();
+
+    // Timer Logic
+    useEffect(() => {
+        let interval;
+        if (isPlaying && !gameOver && !win) {
+            interval = setInterval(() => {
+                setTimer(t => t + 1);
+            }, 1000);
+        }
+        return () => clearInterval(interval);
+    }, [isPlaying, gameOver, win]);
+
+    // Submit score on Win
+    useEffect(() => {
+        if (win && user) {
+            addScore('minesweeper', user.username, timer);
+        }
+    }, [win]);
+
+    const formatTime = (seconds) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
     useEffect(() => {
         if (isPlaying) initGame();
     }, [isPlaying]);
 
     const initGame = () => {
+        setTimer(0);
         const { size, mines } = DIFFICULTIES[difficulty];
+
         let newGrid = Array(size).fill().map(() => Array(size).fill({
             isMine: false,
             isRevealed: false,
             isFlagged: false,
             count: 0
         }));
+
 
         let minesPlaced = 0;
         while (minesPlaced < mines) {
@@ -63,6 +96,7 @@ const Minesweeper = () => {
         setMineCount(mines);
     };
 
+    // ... (rest of helper functions: revealCell, floodFill, etc)
     const revealCell = (r, c) => {
         if (gameOver || win || grid[r][c].isRevealed || grid[r][c].isFlagged) return;
 
@@ -142,16 +176,17 @@ const Minesweeper = () => {
         <Layout>
             <GameWrapper
                 title="Minesweeper"
-                description="Clear the minefield without detonating any mines!"
+                description="Clear the board without detonating any mines!"
                 instructions={[
-                    "Click a square to reveal it.",
-                    "Numbers show how many mines are adjacent to that square.",
-                    "Right-click to flag a square you think contains a mine.",
-                    "Clear all non-mine squares to win!"
+                    "Click on a cell to reveal it.",
+                    "Numbers indicate how many mines are adjacent to that cell.",
+                    "Right-click (or hold) to place a flag on suspected mines.",
+                    "Clear all non-mine cells to win!"
                 ]}
             >
                 <div className="flex flex-col items-center">
                     {!isPlaying ? (
+                        // ... (Menu)
                         <div className="bg-white p-8 rounded-2xl shadow-lg border border-slate-100 max-w-sm w-full text-center">
                             <Bomb className="w-16 h-16 text-red-500 mx-auto mb-6" />
                             <h2 className="text-2xl font-bold text-slate-800 mb-6">Start New Game</h2>
@@ -163,8 +198,8 @@ const Minesweeper = () => {
                                             key={level}
                                             onClick={() => setDifficulty(level)}
                                             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${difficulty === level
-                                                    ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
-                                                    : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                                ? 'bg-red-500 text-white shadow-lg shadow-red-500/30'
+                                                : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
                                                 }`}
                                         >
                                             {level}
@@ -183,7 +218,15 @@ const Minesweeper = () => {
                                     </div>
                                     <span>{mineCount}</span>
                                 </div>
-                                {win && <div className="text-green-500 font-black animate-bounce text-xl">CLEARED!</div>}
+                                <div className="font-mono text-2xl font-black text-slate-800">
+                                    {formatTime(timer)}
+                                </div>
+                                {win && (
+                                    <div className="text-green-500 font-black animate-bounce text-xl flex flex-col items-center leading-none">
+                                        CLEARED!
+                                        {user && <span className="text-xs flex items-center gap-1 mt-1"><Trophy size={10} /> Saved</span>}
+                                    </div>
+                                )}
                                 {gameOver && !win && <div className="text-red-500 font-black animate-pulse text-xl">BOOM!</div>}
                                 <Button onClick={initGame} variant="secondary" className="p-2 aspect-square rounded-full">
                                     <RotateCcw size={20} />

@@ -7,31 +7,31 @@ const GameWrapper = ({ title, description, instructions, children }) => {
     const [showTutorial, setShowTutorial] = useState(true);
 
     return (
-        <div className="flex flex-col w-full h-full min-h-[calc(100vh-100px)]">
+        <div className="flex flex-col w-full h-full bg-slate-50 overflow-hidden">
             {/* Game Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-slate-200 shadow-sm">
-                <div className="flex items-center gap-4">
+            <div className="flex-none flex items-center justify-between px-3 py-2 sm:px-4 sm:py-3 bg-white border-b border-slate-200 shadow-sm z-10">
+                <div className="flex items-center gap-2 sm:gap-4">
                     <button
                         onClick={() => window.location.href = '/'}
-                        className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors"
+                        className="p-1.5 sm:p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors"
                     >
-                        <ArrowLeft size={24} />
+                        <ArrowLeft size={20} className="sm:w-6 sm:h-6" />
                     </button>
-                    <h1 className="text-2xl font-bold text-slate-800">{title}</h1>
+                    <h1 className="text-lg sm:text-2xl font-bold text-slate-800 truncate">{title}</h1>
                 </div>
 
                 <button
                     onClick={() => setShowTutorial(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-full font-semibold hover:bg-blue-100 transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-full font-semibold hover:bg-blue-100 transition-colors text-xs sm:text-sm"
                 >
-                    <Info size={20} />
+                    <Info size={16} />
                     <span className="hidden sm:inline">How to Play</span>
                 </button>
             </div>
 
-            {/* Main Content */}
-            <div className="flex-1 bg-slate-50 p-4 sm:p-8 flex justify-center overflow-auto">
-                <div className="w-full max-w-4xl">
+            {/* Main Content - Centered & Flexible */}
+            <div className="flex-1 w-full flex flex-col items-center justify-center overflow-hidden p-1 sm:p-2">
+                <div className="w-full h-full flex flex-col items-center justify-center">
                     {children}
                 </div>
             </div>

@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Layout from '../../components/Layout/Layout';
 import Button from '../../components/UI/Button';
 import GameWrapper from '../../components/UI/GameWrapper';
+import { useAuth } from '../../context/AuthContext';
+import { useLeaderboard } from '../../context/LeaderboardContext';
 import { RotateCcw, Play, Pause, Settings, Trophy } from 'lucide-react';
 
 const GRID_SIZE = 20;
@@ -27,6 +29,9 @@ const Snake = () => {
     const directionRef = useRef(INITIAL_DIRECTION);
     const gameLoopRef = useRef(null);
 
+    const { user } = useAuth();
+    const { addScore } = useLeaderboard();
+
     useEffect(() => {
         directionRef.current = direction;
     }, [direction]);
@@ -42,6 +47,13 @@ const Snake = () => {
             localStorage.setItem('snakeIdx', score);
         }
     }, [score, highScore]);
+
+    // Handle Game Over Score Submission
+    useEffect(() => {
+        if (gameOver && user && score > 0) {
+            addScore('snake', user.username, score);
+        }
+    }, [gameOver]);
 
     useEffect(() => {
         if (isPlaying) {
@@ -162,7 +174,7 @@ const Snake = () => {
                     "Choose a higher speed for a greater challenge!"
                 ]}
             >
-                <div className="flex flex-col items-center">
+                <div className="flex flex-col items-center w-full h-full justify-center">
 
                     {!isPlaying ? (
                         <div className="text-center bg-white p-8 rounded-2xl shadow-lg border border-slate-100 max-w-sm w-full">
@@ -179,8 +191,8 @@ const Snake = () => {
                                             key={level}
                                             onClick={() => setDifficulty(level)}
                                             className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${difficulty === level
-                                                    ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 scale-105'
-                                                    : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
+                                                ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 scale-105'
+                                                : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
                                                 }`}
                                         >
                                             {level}
@@ -203,8 +215,8 @@ const Snake = () => {
                                     className="grid bg-emerald-950/50"
                                     style={{
                                         gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
-                                        width: 'min(80vw, 400px)',
-                                        height: 'min(80vw, 400px)'
+                                        width: 'min(80vmin, 600px)',
+                                        height: 'min(80vmin, 600px)'
                                     }}
                                 >
                                     {Array.from({ length: GRID_SIZE * GRID_SIZE }).map((_, i) => {
@@ -226,9 +238,19 @@ const Snake = () => {
                                 </div>
 
                                 {gameOver && (
-                                    <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-4 backdrop-blur-sm rounded-lg">
+                                    <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center p-4 backdrop-blur-sm rounded-lg text-center">
                                         <h3 className="text-4xl font-black text-white mb-2 tracking-wide">CRASHED!</h3>
                                         <p className="text-xl text-emerald-400 mb-6 font-bold">Final Score: {score}</p>
+
+                                        {user && (
+                                            <div className="flex items-center gap-2 text-yellow-400 mb-6 font-bold bg-yellow-400/10 px-4 py-2 rounded-full border border-yellow-400/20">
+                                                <Trophy size={16} /> Score Submitted!
+                                            </div>
+                                        )}
+                                        {!user && (
+                                            <p className="text-slate-400 text-sm mb-6">Log in to save your high score!</p>
+                                        )}
+
                                         <div className="flex flex-col gap-3 w-full max-w-[200px]">
                                             <Button onClick={resetGame}>Try Again</Button>
                                             <Button onClick={backToMenu} variant="secondary">Change Difficulty</Button>

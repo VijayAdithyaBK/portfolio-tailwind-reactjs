@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import Layout from '../../components/Layout/Layout';
 import Button from '../../components/UI/Button';
 import GameWrapper from '../../components/UI/GameWrapper';
-import { Play, RotateCcw, Target, Timer } from 'lucide-react';
+import { Play, RotateCcw, Target, Timer, Trophy } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useLeaderboard } from '../../context/LeaderboardContext';
 
 const MOLE_COUNT = 9;
 const GAME_DURATION = 30;
@@ -13,31 +15,48 @@ const WhackAMole = () => {
     const [timeLeft, setTimeLeft] = useState(GAME_DURATION);
     const [isPlaying, setIsPlaying] = useState(false);
     const [gameOver, setGameOver] = useState(false);
+
+    const { user } = useAuth();
+    const { addScore } = useLeaderboard();
+
+    // Refs for mutable state accessible in timers
     const timerRef = useRef(null);
     const moleTimerRef = useRef(null);
+    const isPlayingRef = useRef(false);
+    const timeLeftRef = useRef(GAME_DURATION);
+
+    const scoreRef = useRef(0);
+
+    useEffect(() => {
+        isPlayingRef.current = isPlaying;
+    }, [isPlaying]);
 
     useEffect(() => {
         return () => {
             clearInterval(timerRef.current);
             clearTimeout(moleTimerRef.current);
+            setMoles(Array(MOLE_COUNT).fill(false));
         };
     }, []);
 
     const startGame = () => {
         setScore(0);
+        scoreRef.current = 0;
         setTimeLeft(GAME_DURATION);
+        timeLeftRef.current = GAME_DURATION;
         setIsPlaying(true);
+        isPlayingRef.current = true;
         setGameOver(false);
         setMoles(Array(MOLE_COUNT).fill(false));
 
+        // Game Timer
         timerRef.current = setInterval(() => {
-            setTimeLeft((prev) => {
-                if (prev <= 1) {
-                    endGame();
-                    return 0;
-                }
-                return prev - 1;
-            });
+            if (timeLeftRef.current <= 1) {
+                endGame();
+            } else {
+                timeLeftRef.current -= 1;
+                setTimeLeft(timeLeftRef.current);
+            }
         }, 1000);
 
         popMole();
@@ -47,12 +66,18 @@ const WhackAMole = () => {
         clearInterval(timerRef.current);
         clearTimeout(moleTimerRef.current);
         setIsPlaying(false);
+        isPlayingRef.current = false;
         setGameOver(true);
         setMoles(Array(MOLE_COUNT).fill(false));
+
+        if (user && scoreRef.current > 0) {
+            addScore('whack', user.username, scoreRef.current);
+        }
     };
 
     const popMole = () => {
-        if (!isPlaying && timeLeft <= 0) return;
+        // Check Ref instead of State to avoid stale closure
+        if (!isPlayingRef.current || timeLeftRef.current <= 0) return;
 
         const randomTime = Math.random() * 800 + 400;
         const randomIdx = Math.floor(Math.random() * MOLE_COUNT);
@@ -64,19 +89,26 @@ const WhackAMole = () => {
         });
 
         moleTimerRef.current = setTimeout(() => {
+            if (!isPlayingRef.current) return;
+
             setMoles(prev => {
                 const newMoles = [...prev];
                 newMoles[randomIdx] = false;
                 return newMoles;
             });
-            if (timeLeft > 0) popMole();
+
+            if (timeLeftRef.current > 0) popMole();
         }, randomTime);
     };
 
     const whack = (index) => {
         if (!moles[index] || !isPlaying) return;
 
-        setScore(s => s + 10);
+        setScore(s => {
+            const newScore = s + 10;
+            scoreRef.current = newScore;
+            return newScore;
+        });
         setMoles(prev => {
             const newMoles = [...prev];
             newMoles[index] = false;
@@ -108,21 +140,21 @@ const WhackAMole = () => {
                         </div>
                     </div>
 
-                    <div className="p-6 bg-slate-800 rounded-3xl shadow-xl shadow-slate-900/20 border-b-8 border-slate-900">
+                    <div className="p-6 bg-slate-800 rounded-3xl shadow-xl shadow-slate-900/20 border-b-8 border-slate-900 w-full max-w-[80vmin]">
                         <div className="grid grid-cols-3 gap-4">
                             {moles.map((isUp, i) => (
                                 <div
                                     key={i}
                                     onMouseDown={() => whack(i)}
                                     className={`
-                                w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 relative overflow-hidden cursor-pointer select-none transition-all duration-100
+                                w-full aspect-square rounded-full border-4 relative overflow-hidden cursor-pointer select-none transition-all duration-100
                                 ${isUp
                                             ? 'bg-amber-400 border-amber-600 shadow-[0_0_20px_rgba(251,191,36,0.6)] z-10 scale-105'
                                             : 'bg-slate-900 border-slate-950 shadow-inner scale-100'}
                             `}
                                 >
                                     {isUp && (
-                                        <div className="absolute inset-0 flex items-center justify-center text-4xl animate-bounce">
+                                        <div className="absolute inset-0 flex items-center justify-center text-4xl sm:text-5xl animate-bounce">
                                             🐹
                                         </div>
                                     )}
@@ -135,6 +167,11 @@ const WhackAMole = () => {
                         <div className="mt-8 text-center animate-bounce">
                             <h3 className="text-3xl font-black text-slate-800 mb-2">TIME'S UP!</h3>
                             <p className="text-xl text-amber-500 font-bold">Final Score: {score}</p>
+                            {user && (
+                                <div className="flex items-center justify-center gap-2 text-amber-600 mt-2 font-bold text-sm">
+                                    <Trophy size={14} /> Score Saved!
+                                </div>
+                            )}
                         </div>
                     )}
 
